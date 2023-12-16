@@ -27,11 +27,12 @@ Repository for all coding exercises of my Bachelor and Master study at TH Nuremb
   - Processes, Shared Memory, Signals, Threads
 - Realtimesystems (INF1/B)
   - C programming on custom realtime simulation
+  - ...
 - Shell-Programming
 
  ### 7_Semester
  - Design of Softwareapplikations (INF3/1)
-   - 
+   - ...
  - Implementation of Softwareapplikations (INF3/2)
    - JAVA applications with Model/View/Controller construction
   
