@@ -1,0 +1,9 @@
+Diese Datei ist zum Test
+Hier werden nur ein paar
+Zeilen geschschrieben um 
+zu Testen ob Zeilennummer
+vorne eingefuegt werden koennen.
+Ende
+bli bla
+blub
+blub blub
