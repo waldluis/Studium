@@ -1,0 +1,15 @@
+Aufgabe B.1 Luis Waldhauser
+
+1. Es ist Magic Number, und wird vom Betriebssystem benötigt, um den Dateityp auszuwerten
+
+2. Für Shells heißt das Konstrukt Shebang.
+
+3. Das Grundlegende hinter diesem Prinzip ist die Dokumenttypdefinition (Document Type Definition DTD)
+									Eine DTD ist etwas anderes. Den Begriff gibt es nur im XML-Kontext.
+									Die Magic Number zielt auf den Dateityp.
+									Der Shebang kennzeichent die Datei aber nicht nur als Script,
+									sondern gibt im Anschluss danach den Interpreter an, der geladen werden muss.
+									Das kann nicht nur eine Shell (wie die bash) sein, sondern auch z.B. python.
+									
+									2.5 / 3
+									

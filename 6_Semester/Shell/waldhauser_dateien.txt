@@ -1,0 +1,14 @@
+#Bearbeitung Aufgabe B.2 Luis Waldhauser
+
+#Teilaufgabe 1
+ls 2019*.*
+									
+#Teilaufgabe 2
+ls ????0101*.*
+
+#Teilaufgabe 3
+find . -type f -name "[[:upper:]]*"					 -name "[A-Z]*"     wäre kürzer ;-)
+
+									Sehr gut!
+									Sie waren der Wenigen, der den Mut hat, bei den ersten beiden Aufgaben den "ls" zu verwenden. Die einfachen Lösungen sind die besten! :-)
+									3 / 3 P.
