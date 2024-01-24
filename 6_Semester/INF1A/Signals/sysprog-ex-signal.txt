@@ -1,0 +1,70 @@
+
+Praktikum "Betriebssysteme": Aufgaben zu Signalen
+
+-------------------------------------------------------
+
+Hinweis:  Kompilieren Sie mit den flags
+  -std=c99 -D_POSIX_SOURCE -O2 -Wall -W
+(Siehe man 2 sigaction und man 7 feature_test_macros.)
+
+
+-------------------------------------------------------
+
+Aufgabe 1: warmup (OPTIONAL)
+
+Handler fuer SIGUSR1 und SIGUSR2, der ausgibt, welches Signal ankam
+(den handler mit signal() installieren).
+
+In main():
+   while ( 1 ) pause();
+
+Was passiert, wenn ein Signal zweimal ankommt
+(Persistenz des handlers)?
+
+Aufgabe 1.5: warmup (OPTIONAL)
+Wie vorher sigaction() Mechanismus.
+
+Was passiert, wenn ein Signal zweimal ankommt
+(Persistenz des handlers)?
+
+------------------------------------------------------
+
+Aufgabe 2: "DVD Brenner"
+
+Handler fuer SIGINT (ctrl-c vom keyboard), der
+beim 1. Aufruf die Ausgabe "Are you sure?  Press ctrl-c again to exit."
+macht und beim 2. Aufruf "Exiting." ausgibt und terminiert.
+
+Benutzen Sie den sigaction() Mechanismus.
+
+-------------------------------------------------------
+
+Aufgabe 3: "compute server"
+Durch alarm() maximale Programm-Laufzeit (von 3 Sekunden) festlegen.
+
+Globale variable:
+volatile sig_atomic_t keep_going = 1;
+
+Dummy computation:
+/* Do one chunk of highly scientific computations: */
+void do_stuff(void)
+{
+    ct += 1;
+    printf("Starting chunk number (%d) ...\n", ct);
+    for (int i=0; i<200; ++i)  usleep(1000);
+    printf("Finished chunk number (%d).\n", ct);
+}
+
+In main():
+
+    /* Check the flag once in a while to see when to quit: */
+    while ( keep_going )  // volatile
+    {
+        do_stuff();
+    }
+
+Benutzen Sie den sigaction() Mechanismus.
+
+
+-------------------------------------------------------
+-------------------------------------------------------
