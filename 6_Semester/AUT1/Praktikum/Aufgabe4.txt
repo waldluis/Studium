@@ -1,0 +1,255 @@
+ORGANIZATION_BLOCK "Cyclic interrupt"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_TEMP 
+      AD_int : Int;   // Normiertes Sensorsignal volle Helligkeit = 1000 W/m2
+   END_VAR
+
+
+BEGIN
+	#AD_int := "Sensornormierung"("Lichtsensor");   // Normierung des Sensorsignals Licht permant an => AD_int = 1000
+	"Transfer_Daten".Istwert_ungefiltert := #AD_int;  // Übergabe normiertes Sensorsignal ungefiltert an HMI 
+	
+	"PT1_Glied_FB_DB"(Abtastwert := #AD_int,                         // Filterung Sensorsignal 
+	                  Gefiltert_Int => "Transfer_Daten".Istwert);     // Übergabe Sensorsignal an HMI 
+	
+	IF "PI_Regler" AND NOT "Zweipunkt_Regler" AND NOT "P_Regler" THEN       //Aktivierung von PI_Regler über Schalter
+	    "PI_Regler_FB_DB"(Sollwert := "Transfer_Daten".Sollwert,
+	                      Istwert := "Transfer_Daten".Istwert,
+	                      Verstaerkung := "Transfer_Daten".Verstaerkung,
+	                      Integrierzeit := "Transfer_Daten".Integrierzeit,
+	                      PBM => "Lampe");
+	END_IF;
+END_ORGANIZATION_BLOCK
+
+
+
+ORGANIZATION_BLOCK "Main"
+TITLE = "Main Program Sweep (Cycle)"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+   VAR_TEMP 
+      OB1_EV_CLASS : Byte;   // Bits 0-3 = 1 (Coming event), Bits 4-7 = 1 (Event class 1)
+      OB1_SCAN_1 : Byte;   // 1 (Cold restart scan 1 of OB 1), 3 (Scan 2-n of OB 1)
+      OB1_PRIORITY : Byte;   // Priority of OB Execution
+      OB1_OB_NUMBR : Byte;   // 1 (Organization block 1, OB1)
+      OB1_RESERVED_1 : Byte;   // Reserved for system
+      OB1_RESERVED_2 : Byte;   // Reserved for system
+      OB1_PREV_CYCLE : Int;   // Cycle time of previous OB1 scan (milliseconds)
+      OB1_MIN_CYCLE : Int;   // Minimum cycle time of OB1 (milliseconds)
+      OB1_MAX_CYCLE : Int;   // Maximum cycle time of OB1 (milliseconds)
+      OB1_DATE_TIME : Date_And_Time;   // Date and time OB1 started
+      AD_int : Int;   // Normiertes Sensorsignal volle Helligkeit = 1000 W/m2
+   END_VAR
+
+
+BEGIN
+	#AD_int := "Sensornormierung"("Lichtsensor");   // Normierung des Sensorsignals Licht permant an => AD_int = 1000
+	"Transfer_Daten".Istwert_ungefiltert := #AD_int;  // Übergabe normiertes Sensorsignal ungefiltert an HMI 
+	"Transfer_Daten".Wahl := "Wahl";                      //Übergabe Reglerwahl an HMI zur Anzeige
+	
+	//Aufruf des Stellglied PWM nur zum Funktionstest
+	// "Stellglied_DB"(Stellgroesse:="Transfer_Daten".Sollwert/25.0,         
+	//                PBM=>"Lampe");
+	
+	
+	IF "P_Regler" AND NOT "PI_Regler" AND NOT "Zweipunkt_Regler" THEN           //Aktivierung von P_Regler über Schalter
+	    "P_Regler_FB_DB"(Sollwert := "Transfer_Daten".Sollwert,
+	                     Istwert := "Transfer_Daten".Istwert,
+	                     Verstaerkung := "Transfer_Daten".Verstaerkung,
+	                     PBM => "Lampe");
+	END_IF;
+	
+	IF "Zweipunkt_Regler" AND NOT "P_Regler" AND NOT "PI_Regler" THEN           //Aktivierung von Zweipunkt_Regler über Schalter
+	    "Zweipunkt_FB_DB"(Sollwert := "Transfer_Daten".Sollwert,
+	                      Istwert := "Transfer_Daten".Istwert_ungefiltert,
+	                      Hysterese := "Transfer_Daten".Hysterese,
+	                      Lampe => "Lampe");
+	END_IF;
+	
+	
+END_ORGANIZATION_BLOCK
+
+
+FUNCTION_BLOCK "P_Regler_FB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Sollwert : Int;
+      Istwert : Int;
+      Verstaerkung : Real;
+   END_VAR
+
+   VAR_OUTPUT 
+      PBM : Bool;   // Ausganssignal für Lampe
+   END_VAR
+
+   VAR 
+      Sollwert_Real : Real;
+      Istwert_Real : Real;
+      Regelabweichung : Real;
+      Stellwert : Real;
+      Stellglied_Instance : "Stellglied";
+   END_VAR
+
+
+BEGIN
+	#Sollwert_Real := INT_TO_REAL(#Sollwert);
+	#Istwert_Real := INT_TO_REAL(#Istwert);
+	
+	#Regelabweichung := #Sollwert_Real - #Istwert_Real;
+	
+	#Stellwert := #Regelabweichung * #Verstaerkung;
+	
+	IF #Stellwert > 39 THEN         //Begrenzung
+	    #Stellwert := 39;
+	END_IF;
+	
+	IF #Stellwert < 0 THEN
+	    #Stellwert := 0;
+	END_IF;
+	
+	#Stellglied_Instance(Stellgroesse:=#Stellwert,
+	                     PBM=>#PBM);
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "PI_Regler_FB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Sollwert : Int;
+      Istwert : Int;
+      Verstaerkung : Real;
+      Integrierzeit : Real;
+   END_VAR
+
+   VAR_OUTPUT 
+      PBM : Bool;
+   END_VAR
+
+   VAR 
+      Stellglied_Instance : "Stellglied";
+      Sollwert_Real { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      Istwert_Real { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      I_Anteil { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      P_Anteil { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      I_Anteil_alt { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      Regelabweichung { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      Stellwert { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+   END_VAR
+
+
+BEGIN
+	#Sollwert_Real := INT_TO_REAL(#Sollwert);
+	#Istwert_Real := INT_TO_REAL(#Istwert);
+	
+	#Regelabweichung := #Sollwert_Real - #Istwert_Real;
+	
+	#P_Anteil := #Regelabweichung * #Verstaerkung;
+	
+	IF #P_Anteil > 39 THEN              //Begrenzung P-Anteil
+	    #P_Anteil := 39;
+	END_IF;
+	
+	IF #P_Anteil < 0 THEN
+	    #P_Anteil := 0;
+	END_IF;
+	
+	
+	#I_Anteil := #I_Anteil_alt + ((0.001 / #Integrierzeit) * #Regelabweichung);
+	
+	IF #I_Anteil > 39 THEN          //Begrenzung I-Anteil
+	    #I_Anteil := 39;
+	END_IF;
+	
+	IF #I_Anteil < 0 THEN
+	    #I_Anteil := 0;
+	END_IF;
+	
+	#I_Anteil_alt := #I_Anteil;
+	
+	#Stellwert := #P_Anteil + #I_Anteil;
+	
+	#Stellglied_Instance(Stellgroesse:=#Stellwert,
+	                     PBM=>#PBM);
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "Stellglied"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Stellgroesse : Real;
+   END_VAR
+
+   VAR_OUTPUT 
+      PBM : Bool;
+   END_VAR
+
+   VAR 
+      Stellgroesse_Time : Time;
+      Stellgroesse_DINT : DInt;
+      Takt : Bool;
+      TON {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;
+      TOF {InstructionName := 'TOF_TIME'; LibVersion := '1.0'} : TOF_TIME;
+   END_VAR
+
+
+BEGIN
+	#Stellgroesse_DINT := REAL_TO_DINT(#Stellgroesse);
+	#Stellgroesse_Time := DINT_TO_TIME(#Stellgroesse_DINT);
+	
+	#TON(IN:=NOT #Takt,                 //Taktgeber
+	     PT:=T#40ms,
+	     Q=>#Takt);
+	
+	#TOF(IN:=#Takt,                     //Erstellung der PBM
+	     PT:=#Stellgroesse_Time,
+	     Q=>#PBM);
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "Zweipunkt_FB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Sollwert : Int;
+      Istwert : Int;
+      Hysterese : Int;
+   END_VAR
+
+   VAR_OUTPUT 
+      Lampe : Bool;
+   END_VAR
+
+
+BEGIN
+	IF (#Istwert - #Sollwert) > #Hysterese THEN
+	    #Lampe := FALSE;
+	ELSIF (#Sollwert - #Istwert) > #Hysterese THEN
+	    #Lampe := TRUE;
+	END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION "Sensornormierung" : Int
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Lichtsensor : Word;
+   END_VAR
+
+   VAR_TEMP 
+      Wert_Real : Real;
+      Lichtsensor_Real : Real;
+   END_VAR
+
+
+BEGIN
+	#Lichtsensor_Real := WORD_TO_INT(#Lichtsensor);
+	
+	#Wert_Real := #Lichtsensor_Real / 10.54;
+	
+	#Sensornormierung := REAL_TO_INT(#Wert_Real);
+END_FUNCTION
+

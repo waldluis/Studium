@@ -1,0 +1,211 @@
+Schrittmotorsteuerung V5
+
+//Haupt SPS
+FUNCTION_BLOCK "Kommunikation1"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Verbinden : Bool;   // Start der Verbindung
+      Senden : Bool;   // Start der Übertragung
+   END_VAR
+
+   VAR 
+      TCON_Instance {InstructionName := 'TCON'; LibVersion := '4.0'} : TCON;
+      TSEND_Instance {InstructionName := 'TSEND'; LibVersion := '4.0'} : TSEND;
+   END_VAR
+
+
+BEGIN
+	#TCON_Instance(CONNECT:="Haupt_SPS_Connection_DB", ID := 1, REQ := #Verbinden);
+	
+	#TSEND_Instance(REQ:=#Senden,
+	                  ID := 1,
+	                  LEN:=2000,
+	                  DATA:="Koordinaten_erstellen_DB".Stellwert_Feld);
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "Koordinaten_erstellen"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT DB_SPECIFIC
+      Koordinaten_Time : Array[0..5] of Int;   // Zeitpunkte der Eckwerte
+      Koordinaten_Speed : Array[0..5] of Int;   // Drehzahlen der Eckwerte
+   END_VAR
+   VAR_INPUT 
+      Erstellen : Bool;
+   END_VAR
+
+   VAR_OUTPUT DB_SPECIFIC
+      Stellwert_Feld : Array[0..999] of Int;   // Drehzahlwerte
+   END_VAR
+
+   VAR DB_SPECIFIC
+      Index : Int;
+      x1 : Int;   // Zeit Punkt1
+      y1 : Int;   // Drehzahl Punkt1
+      x2 : Int;   // Zeit Punkt2
+      y2 : Int;   // Drehzahl Punkt2
+      Steigung_m : Real;   // Steigung der Geraden
+      Achsenabschnitt_t : Real;   // Achsenabschnitt der geraden
+      x_Wert : Int;   // X-Werte der Gerade Schrittweite 1
+   END_VAR
+
+
+BEGIN
+	IF #Erstellen THEN
+	   
+	    FOR #Index := 0 TO 4 BY 1 DO
+	        
+	        //Zwischenspeichern der Werte
+	        #x1 := #Koordinaten_Time[#Index];
+	        #y1 := #Koordinaten_Speed[#Index];
+	        #x2 := #Koordinaten_Time[#Index + 1];
+	        #y2 := #Koordinaten_Speed[#Index + 1];
+	        
+	        //Berechnung von Steigung und Achsenabschnitt
+	        #Steigung_m := INT_TO_REAL(#y2 - #y1) / INT_TO_REAL(#x2 - #x1);
+	        #Achsenabschnitt_t := INT_TO_REAL(#y1) - #Steigung_m * INT_TO_REAL(#x1);
+	        
+	        //Berechnen der Drehzahlen auf der Geraden
+	        FOR #x_Wert := #x1 TO #x2 BY 1 DO
+	            #Stellwert_Feld[#x_Wert] := REAL_TO_INT(#Steigung_m * #x_Wert + #Achsenabschnitt_t);
+	        END_FOR;
+	        
+	    END_FOR;
+	    
+	END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "Koordinaten_HMI_anzeigen"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Anzeigen : Bool;
+   END_VAR
+
+   VAR_OUTPUT 
+      Kurvenübertragung_int : Int;
+   END_VAR
+
+   VAR 
+      Kurvenübertragung : Word;
+   END_VAR
+
+
+BEGIN
+	IF #Anzeigen THEN
+	    #Kurvenübertragung := #Kurvenübertragung OR 16#8002;   //Kurvenbit und Kurvensammelbit aktivieren zum anzeigen
+	  // http://support.automation.siemens.com/WW/llisapi.dll?func=cslib.csinfo&objId=21913876&load=treecontent&lang=de&siteid=cseus&aktprim=0&objaction=csview&extranet=standard&viewreg=WW
+	  
+	ELSE
+	  #Kurvenübertragung:=16#0000
+	  // Statement section ELSE
+	  ;
+	END_IF;
+	#Kurvenübertragung_int:=WORD_TO_INT(#Kurvenübertragung);
+	
+	
+	
+END_FUNCTION_BLOCK
+
+//MINI SPS
+
+FUNCTION_BLOCK "Achse1"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Sollwert : Real;   // Sollwertgeschwindigkeit
+   END_VAR
+
+   VAR 
+      MC_Power_Instance {InstructionName := 'MC_Power'; LibVersion := '4.0'} : MC_Power;
+      MC_MoveVelocity_Instance {InstructionName := 'MC_MoveVelocity'; LibVersion := '4.0'} : MC_MoveVelocity;
+   END_VAR
+
+
+BEGIN
+	
+	
+	#MC_Power_Instance(Axis:="Achse_1",
+	                   Enable:=TRUE);
+	
+	#MC_MoveVelocity_Instance(Axis:="Achse_1",
+	                          Execute:=FALSE,
+	                          Velocity:=#Sollwert);
+	
+	#MC_MoveVelocity_Instance(Axis:="Achse_1",
+	                            Execute:=TRUE,
+	                            Velocity:=#Sollwert);
+	
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "Auslesen_Sollwert_zuweisen"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Okay : Bool;   // Start des Motors
+   END_VAR
+
+   VAR_OUTPUT 
+      Speed_A_1 : Real;   // Sollwertdrehzahl des Motors
+   END_VAR
+
+   VAR 
+      I : Int;   // Zaehler
+   END_VAR
+
+
+BEGIN
+	IF #Okay THEN    // Zyklisches Zuweisen der Daten aus dem Feldspeicher
+	   
+	    #Speed_A_1 := "Stepperdaten".Speed[#I];
+	    #I := #I + 1;
+	    IF #I = 1000 THEN
+	        "HMI_Transfer".Stepper_Start := 0;
+	        #I := 0;
+	    END_IF;
+	    
+	END_IF;
+	
+	        
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "HSC"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR 
+      CTRL_HSC_0_Instance {InstructionName := 'CTRL_HSC'; LibVersion := '1.0'} : CTRL_HSC;
+   END_VAR
+
+
+BEGIN
+	#CTRL_HSC_0_Instance(HSC:="Local~HSC_2",
+	                     CV:="HMI_Transfer".Zaehler_reset,
+	                     NEW_CV:=0);
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "Kommunikation"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR 
+      TCON_Instance {InstructionName := 'TCON'; LibVersion := '3.0'} : TCON;
+      TRCV_Instance {InstructionName := 'TRCV'; LibVersion := '3.0'} : TRCV;
+   END_VAR
+
+
+BEGIN
+	#TCON_Instance(CONNECT:="Mini_SPS_Connection_DB", REQ := TRUE, ID := 1);
+	
+	
+	#TRCV_Instance(EN_R:=TRUE,
+	                 LEN:=2000,
+	                 ID := 1,
+	                 DATA:="Stepperdaten".Speed);
+	
+	
+END_FUNCTION_BLOCK
+
+

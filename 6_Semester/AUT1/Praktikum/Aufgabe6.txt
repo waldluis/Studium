@@ -1,0 +1,184 @@
+(*Funktionsbaustein für den Automatikbetrieb*)
+FUNCTION_BLOCK Automatikbetrieb
+VAR_INPUT
+	(*Sensorsignale*)
+	Sensor1 			: BOOL; (*Eingangssignal von Sensor1*)									//Lager
+	Sensor2 			: BOOL; (*Eingangssignal von Sensor2*)									//Vereinzler
+	Sensor3 			: BOOL; (*Eingangssignal von Sensor3*)									//Metall
+	Sensor4 			: BOOL; (*Eingangssignal von Sensor4*)									//Holz
+
+	(*Allgemeine Variablen*)
+	Vorwahl_Auto 	: BOOL; (*Aktivieren des Automatikbetriebs über den Taster des HMI*)
+	Zylinder1_End	: BOOL; (*Ergebniss der Simulation aus FB_Aktor Endlage erreicht*)			//Vereinzler
+	Zylinder2_End	: BOOL; (*Ergebniss der Simulation aus FB_Aktor Endlage erreicht*)			//Metall
+	Zylinder3_End	: BOOL; (*Ergebniss der Simulation aus FB_Aktor Endlage erreicht*)			//Holz
+    Sollwert_IN		 : REAL; (*Geschwindigkeit Laufband*)
+//Automatik
+
+	(*Taster von HMI*)
+	T_Start 			: BOOL; (*Taster Start von HMI*)
+	T_Stop		 	: BOOL; (*Taster Stop von HMI*)
+	T_Leerlaufen 		: BOOL; (*Taster Leerlaufen von HMI*)
+	Alle_Zaehler_reset:BOOL;(*Taster HMI Reset bei den Zaehlerausgabefeldern*)	
+    Fehler			:INT;
+END_VAR
+
+VAR_OUTPUT
+	(*Ausgangssignale für die jeweiligen Zylinder und den Frequenzumrichter*)
+	Auto_Zylinder1 	: BOOL; (*Ansteuern von Zylinder1*)
+	Auto_Zylinder2 	: BOOL; (*Ansteuern von Zylinder2*)
+	Auto_Zylinder3 	: BOOL; (*Ansteuern von Zylinder3*)
+    Zaehlerstand_Lager:INT;  (*Anzahl der Würfel im Lager d.h. zwischen Sensor1 und Sensor2 *)
+	Zaehlerstand_Metall:INT; (*Anzahl der Würfel mit Matellkante*)
+	Zaehlerstand_Holz   :INT; (*Anzahl derreinen Holzwürfel*)
+
+	
+	Sollwert_OUT		: REAL; (*Vorgabe des Sollwerts von max. 30 mm/s*)
+END_VAR
+
+VAR
+dummy:BOOL;
+zaehlen : BOOL;
+Lagerzaehler : CTUD;
+Metallzaehler : CTU;
+Holzzaehler : CTU;
+Vereinzeler : RS; 
+R_TRIG_Metall : R_TRIG;
+TP_Metall : TP;
+TON_Metall : TON;
+Zeit : TIME;
+R_TRIG_Holz : R_TRIG;
+TP_Holz : TP;
+TON_Holz : TON;
+
+Auto_Zylinder3_Hilf: BOOL;
+Auto_Zylinder2_Hilf: BOOL;
+Auto_Zylinder1_Hilf: BOOL;
+END_VAR
+
+//Code
+dummy :=dummy; // nur für Funktionstest
+
+
+IF Vorwahl_Auto AND T_Start THEN											//Band starten
+	Sollwert_OUT := Sollwert_IN;
+END_IF
+IF Vorwahl_Auto AND T_Stop THEN												//Band stoppen
+	Sollwert_OUT := 0;
+END_IF
+
+
+//Zaehler
+Metallzaehler(
+	CU:= Sensor3, 
+	RESET:= Alle_Zaehler_reset, 
+	PV:= , 
+	Q=> , 
+	CV=> Zaehlerstand_Metall);
+
+	
+Lagerzaehler(
+	CU:= Sensor1, 
+	CD:= Sensor2, 
+	RESET:= Alle_Zaehler_reset, 
+	LOAD:= , 
+	PV:= , 
+	QU=> , 
+	QD=> , 
+	CV=> Zaehlerstand_Lager);
+	
+	
+	Holzzaehler(
+	CU:= Sensor4, 
+	RESET:= Alle_Zaehler_reset, 
+	PV:= , 
+	Q=> , 
+	CV=> Zaehlerstand_Holz);
+
+// Vereinzeler
+	
+	Vereinzeler(SET:= Sensor2 , RESET1:= Sensor3 OR Sensor4 OR (Fehler <> 0), Q1=> Auto_Zylinder1_Hilf );	
+	Auto_Zylinder1 := Auto_Zylinder1_Hilf AND Vorwahl_Auto;
+
+	
+
+//Metall
+	Zeit := REAL_TO_TIME((85 / Sollwert_Out)*1000);
+	R_TRIG_Metall(CLK:= Sensor3, Q=> );
+	TP_Metall(IN:= R_TRIG_Metall.Q, PT:= (Zeit + T#0.5S) , Q=> , ET=> );
+	TON_Metall(IN:= TP_Metall.Q, PT:= Zeit, Q=> Auto_Zylinder2_Hilf, ET=> );
+	Auto_Zylinder2 := Auto_Zylinder2_Hilf AND Vorwahl_Auto ;
+		
+//Holz
+	R_TRIG_Holz(CLK:= Sensor4 , Q=> );
+	TP_Holz(IN:= R_TRIG_Holz.Q, PT:= (Zeit + T#0.5S), Q=> , ET=> );
+	TON_Holz(IN:= TP_Holz.Q , PT:= Zeit , Q=> Auto_Zylinder3_Hilf, ET=> );
+	Auto_Zylinder3 := Auto_Zylinder3_Hilf AND Vorwahl_Auto ;
+	
+	
+//Fehler
+
+(*Fehlerbaustein, wenn ein Objekt auf dem Laufband im Automatikbetrieb nicht Ordnungsgemäß verfahren wird*)
+FUNCTION_BLOCK Fehler
+VAR_INPUT
+	Vorwahl_Auto	:BOOL; (*Betriebsartenvorwahl Automatikbetrieb*)
+
+	Quittieren	:BOOL; (*Quittiertaster vom HMI*)
+
+	Notaus 	         :BOOL;	(*Abfrage, ob NOTAUS gedrückt wurde*)
+
+	(*Sensorsignale*)
+	Sensor2		: BOOL;
+	Sensor3		: BOOL;
+	Sensor4		: BOOL;
+    Sollwert_IN	 : REAL; (*Geschwindigkeit Laufband*)
+END_VAR
+VAR_OUTPUT
+	Fehler 		: INT :=0; (*Ausgabevariable für den 	Fehler = 0 -> kein Fehler vorhanden
+   														Fehler = 1 -> Not aus betätigt
+   														Fehler = 2 -> Material verklemmt*)
+END_VAR
+VAR
+	dummy:BOOL;
+	Timer_Reset : BOOL;
+	Ton_Timer : TON;
+	
+	R_TRIG_Sensor2 : R_TRIG;
+	R_TRIG_MH : R_TRIG;
+	Fehlerzeit: TIME;
+	RS : RS;
+END_VAR
+
+//Code
+	dummy:=dummy;
+
+(* Bei Quittierung Fehler zurücksetzen*)
+(* 	Fehler = 0 => kein Fehler vorhanden
+	Fehler = 1 => Not Aus betätigt
+	Fehler = 2 => Material verklemmt *)
+	(* Notaus Fehlermeldung *)
+	
+//Ablauf Fehlerzeit
+Fehlerzeit := REAL_TO_TIME((( 360 / Sollwert_IN) + 2) * 1000);
+RS(SET:=Sensor2 , RESET1:= Sensor3 OR Sensor4 OR Quittieren , Q1=> Timer_Reset );
+Ton_Timer(IN:= Timer_Reset , PT:= Fehlerzeit, Q=> , ET=> );
+
+
+//Fehler setzen und Rücksetzen
+IF Ton_Timer.Q  AND Vorwahl_Auto THEN
+	Fehler := 2;
+	Sollwert_IN := 0;
+END_IF
+
+IF Quittieren THEN
+	Fehler := 0;
+	
+END_IF
+
+IF NOT Notaus THEN
+	Fehler := 1;
+	Sollwert_IN := 0;
+END_IF
+
+
+

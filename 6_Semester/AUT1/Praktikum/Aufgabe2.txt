@@ -1,0 +1,87 @@
+FUNCTION_BLOCK "Garage_FB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Taster_Einfahrt_auf : Bool;   // 1 Bedarfsmeldung Einfahrt öffnen / 0 nichts
+      Taster_Ausfahrt_auf : Bool;   // 1 Bedarfsmeldung Einfahrt öffnen / 0 nichts
+      Endschalter_oben : Bool;   // 1 Tor nicht oben / 0  Tor oben
+      Endschalter_unten : Bool;   // 1 Tor nicht unten / 0  Tor unten
+      Rueckmeldung_Tor_schliesst : Bool;   // 1 Tor schliesst nicht / 0 Tor schliesst
+      Rueckmeldung_Tor_oeffnet : Bool;   // 1 Tor oeffnet nicht / 0 Tor oeffnet
+      Lichtschranke_Tor : Bool;   // 1 LS nicht unterbrochen / 0 LS unterbrochen
+   END_VAR
+
+   VAR_OUTPUT 
+      Tor_hoch : Bool;   // 1 Tor fährt hoch / 0 keine Aktion
+      Tor_runter : Bool;   // 1 Tor fährt runter / 0 keine Aktion
+      Ampel_E_Gruen : Bool;   // 1 Lampe leuchtet / 0 Lampe aus
+      Ampel_E_Rot : Bool;   // 1 Lampe leuchtet / 0 Lampe aus
+      Ampel_A_Rot : Bool;   // 1 Lampe leuchtet / 0 Lampe aus
+      Ampel_A_Gruen : Bool;   // 1 Lampe leuchtet / 0 Lampe aus
+   END_VAR
+
+   VAR 
+      Rufspeicher_Ausfahrt : Bool;   // 1 Anfrage Ausfahrt / 0 keine Anfrage
+      Rufspeicher_Einfahrt : Bool;   // 1 Anfrage Einfahrt / 0 keine Anfrage
+      Verzoegert_Freigeben {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;   // 1 Verzögert Freigeben / 0 keine Freigabe
+      Sperren { S7_SetPoint := 'True'} : Bool;   // 1 Sperren / 0 nicht Sperren
+      Freigeben { S7_SetPoint := 'True'} : Bool;   // 1 Freigeben / 0 nicht Freigeben 
+      Verzoegert_Sperren {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;   // 1 Verzögert Sperren / 0 kein Sperren
+      Verzoegert_schliessen {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;   // 1 Verzögert Schliessen / 0 kein Schliessen
+      Ruecksetzen {InstructionName := 'TP_TIME'; LibVersion := '1.0'} : TP_TIME;   // 1 Ruecksetzen / 0 Ruecksetzen
+      Gruene_Lampe { S7_SetPoint := 'True'} : Bool;   // 1 Eine Gruenelampe an / 0 keine Gruenelampe an
+      Bewegung : Bool;   // 1 Bewegung / 0 keine Bewegung
+      TON1 {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;   // Taktgeber
+      TON2 {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;   // Blinkvorgang
+   END_VAR
+
+
+BEGIN
+	//Rufspeicher definieren
+	#Rufspeicher_Ausfahrt := NOT #Ruecksetzen.Q AND NOT #Rufspeicher_Einfahrt AND (#Taster_Ausfahrt_auf OR #Rufspeicher_Ausfahrt);
+	#Rufspeicher_Einfahrt := NOT #Ruecksetzen.Q AND NOT #Rufspeicher_Ausfahrt AND (#Taster_Einfahrt_auf OR #Rufspeicher_Einfahrt);
+	
+	//Motorsteuerung
+	#Tor_hoch := #Endschalter_oben AND (#Rufspeicher_Ausfahrt OR #Rufspeicher_Einfahrt) AND #Lichtschranke_Tor;
+	#Tor_runter := NOT #Rufspeicher_Ausfahrt AND NOT #Rufspeicher_Einfahrt AND #Endschalter_unten AND (#Verzoegert_schliessen.Q OR NOT #Rueckmeldung_Tor_schliesst) AND #Lichtschranke_Tor;
+	
+	#Verzoegert_schliessen(IN := #Sperren,
+	                       PT := T#5s);
+	
+	//Freigeben und Sperren
+	#Verzoegert_Freigeben(IN:= #Rueckmeldung_Tor_schliesst AND NOT #Sperren AND NOT #Freigeben AND NOT #Endschalter_oben,
+	                      PT:=T#3s);
+	#Freigeben := (#Verzoegert_Freigeben.Q OR #Freigeben) AND NOT #Sperren;
+	
+	#Verzoegert_Sperren(IN:=#Freigeben,
+	                    PT:=T#2s);
+	#Sperren := NOT #Taster_Ausfahrt_auf AND NOT #Taster_Einfahrt_auf AND #Rueckmeldung_Tor_oeffnet AND #Rueckmeldung_Tor_schliesst AND (#Verzoegert_Sperren.Q OR #Sperren);
+	
+	//Ruecksetzen der Rufspeicher
+	#Ruecksetzen(IN:=#Sperren OR NOT #Lichtschranke_Tor,
+	             PT:=T#500ms);
+	
+	
+	
+	//Ampelsteuerung
+	
+	//Blinktimer
+	#TON1(IN:= #TON2.Q,         
+	         PT:= T#200ms);
+	#TON2(IN:= NOT #TON1.Q,
+	      PT:= T#200ms);
+	
+	//Variablen für Ampel Rot definieren
+	#Gruene_Lampe := #Ampel_A_Gruen OR #Ampel_E_Gruen;
+	#Bewegung := NOT #Rueckmeldung_Tor_oeffnet OR NOT #Rueckmeldung_Tor_schliesst;
+	
+	//Ampel Rot
+	#Ampel_A_Rot :=  (#Bewegung AND #TON2.Q) OR (NOT #Bewegung AND NOT #Gruene_Lampe) OR (#Freigeben AND #Rufspeicher_Einfahrt);
+	#Ampel_E_Rot := (#Bewegung AND #TON2.Q) OR (NOT #Bewegung AND NOT #Gruene_Lampe) OR (#Freigeben AND #Rufspeicher_Ausfahrt);
+	
+	// Ampel Grün
+	#Ampel_A_Gruen := #Freigeben AND #Rufspeicher_Ausfahrt;
+	#Ampel_E_Gruen := #Freigeben AND #Rufspeicher_Einfahrt;
+	
+END_FUNCTION_BLOCK
+

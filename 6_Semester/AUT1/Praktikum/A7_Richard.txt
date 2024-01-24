@@ -1,0 +1,109 @@
+FUNCTION_BLOCK Reger_Z_Reihe
+VAR_INPUT
+	Reglerfreigabe: BOOL;
+	Sollposition_m: REAL;
+	Istposition_m : REAL;
+END_VAR
+VAR_OUTPUT
+	Geschwindigkeit: REAL;
+	Position_erreicht: BOOL;
+
+END_VAR
+VAR
+
+	Reglerfreigabeflanke: R_TRIG;
+	t: REAL;
+	s_t_0: REAL;
+
+	delta_s: REAL;
+	delta_t: REAL;
+	delta_t_a: REAL;
+	delta_t_v: REAL;
+
+	v_max_const : REAL := 0.025;
+	a_max_const : REAL := 0.0125;
+
+	Soll_Position_t: REAL;
+	Soll_Geschwindigkeit_t : REAL;
+
+	V_Positionsabweichung: REAL;
+	Verstaerkung: REAL := 0.5;
+
+	maxAbweichung_CONST : REAL := 1;
+END_VAR
+
+	(*Flanke Freigabe*)
+	Reglerfreigabeflanke(CLK := Reglerfreigabe);
+
+	(*Wenn Flanke kommt, dann INIT*)
+	IF Reglerfreigabeflanke.Q THEN
+		s_t_0 := Istposition_m;
+		delta_s := Sollposition_m - Istposition_m;
+
+		delta_t_a := SQRT((ABS(delta_s) / a_max_const) * 5.7735);
+		delta_t_v := (ABS(delta_s)/v_max_const) * 1.875;
+
+		IF delta_t_a > delta_t_v THEN
+			delta_t := delta_t_a;
+		ELSE
+			delta_t := delta_t_v;
+		END_IF
+
+		t:= 0.0;
+	END_IF
+
+	(*Während die Freigabe da ist, kann er arbeiten*)
+	IF Reglerfreigabe THEN
+		(*neuer interpolierter Sollwert Pos für die aktuelle Zeit*)
+		Soll_Position_t := s_t_0 + delta_s * (10 *EXPT((t/delta_t), 3) - 15 * EXPT((t/delta_t), 4) + 6 * EXPT((t/delta_t), 5));
+		(*neuer interpolierter Sollwert Ges für die aktuelle Zeit*)
+		Soll_Geschwindigkeit_t := (delta_s/delta_t) * (30 *EXPT((t/delta_t), 2) - 60 *EXPT((t/delta_t), 3) + 30*EXPT((t/delta_t), 4));
+
+		IF t < delta_t THEN
+			t := t+0.001;
+		END_IF
+
+	(*ABER Irgendwie muss er ja aufhören zu fahren, wenn Reglerfreigabe mitten in der Fahrt  weg ist.. oder nicht ???
+	IRgendwie muss die Sollgeschwindigkeit_t auch weg?? *)
+	ELSE
+		Soll_Geschwindigkeit_t := 0.0;
+	END_IF
+
+
+	(*Regler arbeitet permanent *)
+	V_Positionsabweichung := Verstaerkung * (Soll_Position_t - Istposition_m);
+
+	IF Sollposition_m - Istposition_m < maxAbweichung_CONST THEN
+		Geschwindigkeit := 0.0;
+		Position_erreicht := TRUE;
+	ELSE
+		Geschwindigkeit := Soll_Geschwindigkeit_t + V_Positionsabweichung;
+		Position_erreicht := FALSE;
+	END_IF
+
+
+
+
+FUNCTION_BLOCK Zaehler
+VAR_INPUT
+	CU: BOOL;
+	CD: BOOL;
+	RESET: BOOL;
+END_VAR
+VAR_OUTPUT
+	CV : DINT := 0;
+END_VAR
+VAR
+END_VAR
+
+F RESET THEN
+	CV := 0;
+ELSIF CU THEN
+	CV := CV+1;
+ELSIF CD THEN
+	CV:=CV-1;
+END_IF
+
+
+
+
