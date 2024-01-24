@@ -1,0 +1,99 @@
+
+Praktikum "Betriebssysteme": Aufgaben zu shared memory und pipes
+
+-------------------------------------------------------
+
+Zu shared memory siehe man pages zu
+
+Benutzen Sie bitte das moderne interface, (POSIX):
+  shm_open: lege shared memory object an
+ ftruncate: setze Groesse fest
+      mmap: blende Datei in Speicherbereich ein
+     msync: schreibe gemachte Änderungen
+    munmap: blende Datei aus Speicher aus
+
+Ein gutes Beispielprogramm finden Sie am Ende
+der man page zu mmap().
+
+
+Das alte interface (extrem gruselig) bitte NICHT benutzen:
+    ftok: generiere key aus dem Paar (pathname, id)
+  shmget: shm anlegen/Öffnen;  gibt shmid zurueck
+   shmat: shm in den virtuellen Adressraum einblenden,
+   shmdt: shm aus dem virtuellen Adressraum ausblenden,
+  shmctl: shm freigeben zum löschen
+  shmfsckmewithachainsaw: gibt's nicht, würde aber passen
+
+-------------------------------------------------------
+
+Aufgabe 1: shared memory; Synchronisation ueber "magic byte" und polling
+
+  Entwickeln Sie ein Programm, das zwei Prozesse implementiert, die
+  Ã¼ber ein Shared Memory miteinander kommunizieren.
+
+  Der eine Prozess ("Schreibprozess") soll aufsteigend nacheinander
+  jeweils die nächsten zehn Zahlen beginnend mit 1, 2, 3, ..., 10 bis
+  zum Endwert 50 in das Shared Memory schreiben und nach dem Schreiben
+  von jeweils zehn Zahlen so lange mit dem Schreiben der nächsten zehn
+  warten, bis der andere Prozess ("Leseprozess") diese Zahl gelesen hat.
+  Der Leseprozess soll die gelesenen Zahlen am Bildschirm ausgeben.
+
+  Das shared memory soll nur 11 Elemente umfassen.
+
+  Zur Synchronisation des Zugriffs verwenden Sie das folgende
+  Synchronisations-Protokoll ("spezielles erstes byte"):
+
+  Beim Einrichten vom Shared Memory (durch den Schreibprozess) und vor
+  dem Start des zweiten Prozesses (des Leseprozesses) wird das erste
+  Byte des Shared Memory vom Schreibprozess auf den Wert 0 gesetzt.
+
+  Dieser Wert ist vom Leseprozess als "Daten können noch nicht gelesen
+  werden" zu interpretieren.  Sobald das erste Byte den Wert 1 hat,
+  darf der Leseprozess lesen.
+
+  Der Leseprozess signalisiert den Abschluss des Lesevorgangs mit dem
+  Wert 0 im ersten Byte.  Dieser Wert ist gleichzeitig die
+  Aufforderung für den Schreibprozess, die nÃ¤chsten 10 Werte zur
+  VerfÃ¼gung zu stellen.
+
+  Bei Erreichen des Endwertes soll der Schreibprozess den Leseprozess
+  Ã¼ber den Wert -1 im ersten Byte auffordern, sich zu beenden. Der
+  Schreibprozess wartet dann so lange, bis sich der Leseprozess
+  beendet hat (wait-Aufruf) und beendet sich dann ebenfalls.
+
+Hinweis: fuer das magic byte verwenden Sie diese #defines
+#define MAY_READ 0
+#define MAY_WRITE 1
+Dies macht das Programm sehr viel lesbarer.
+
+-------------------------------------------------------
+
+Aufgabe 1.718281828459045...: Persistenz des shared memory  (OPTIONAL)
+
+  Demonstrieren Sie, dass ein nicht gelöschtes shared memory nach
+  Beenden des Prozesses im Speicher bleibt.
+  (Auf der Kommandozeile benutze Befehl  ls -l /dev/shm/ oder ls -l /run/shm/ )
+
+
+-------------------------------------------------------
+
+Aufgabe 2: pipes zur Synchronisation
+
+  Veraendern Sie das Programm (1) so, dass pipes
+  zur Synchronisation benutzt werden.
+
+-------------------------------------------------------
+
+Aufgabe 3: pipes zur Kommunikation
+
+  Veraendern Sie das Programm so, dass pipes
+  zur Kommunikation benutzt werden.
+  Nota bene: die Syncronisation macht die pipe selbst.
+
+-------------------------------------------------------
+
+Aufgabe 3.141592...: popen syscall (OPTIONAL)
+  Schreiben Sie ein Programm, in welchem popen() benutzt wird.
+
+-------------------------------------------------------
+-------------------------------------------------------
