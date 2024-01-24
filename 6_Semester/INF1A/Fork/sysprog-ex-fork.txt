@@ -1,0 +1,89 @@
+
+Praktikum "Betriebssysteme": Aufgaben zu fork/wait/exec
+
+-------------------------------------------------------
+
+Aufgabe 1:
+(a) Schreiben Sie ein Programm, das einen Kindprozess erzeugt (fork).
+    Der Elternprozess soll die folgenden Ausgaben machen
+    "Parent: start.\n"
+    "Parent: my PID=%d, child PID=%d\n", ...
+    "Parent: exiting\n"
+    und der Kindprozesses die Ausgaben
+    "Child: start.\n"
+    "Child: my PID=%d, parent PID=%d\n", ...
+    "Child: exiting\n"
+
+(b) Bearbeiten Sie mittels eines strategischen sleep()
+    die Aufgabe (a) so, dass ein orphan entsteht.
+
+(c) Bearbeiten Sie mittels eines strategischen sleep()
+    die Aufgabe (a) so, dass ein zombie entsteht.
+
+Hinweis:
+ Sie koennen (a), (b), und (c) in einem file erledigen:
+ Packen Sie die sleep in jeweils ein Paar
+   #ifdef ORPHAN/#endif   bzw.   #ifdef ZOMBIE/#endif
+ und compilieren Sie mit dem flag -DORPHAN bzw. -DZOMBIE
+ Echte Helden[TM] benuetzen ein makefile
+
+-------------------------------------------------------
+
+Aufgabe 2: "Gabel"
+ Elternprozess erzeugt 10 Kindprozesse nacheinander in einer Schleife.
+ Jeder Kindprozess soll ausgeben:
+ "Child: started. PID=%d.\n", ...
+ "Child: exiting. PID=%d.\n", ...
+ Ein sleep(2) zwischen den Ausgaben macht die Beobachtung des Ablaufs leichter.
+ Der Elternprozess soll danach mittels wait() den exit-status
+ aller Kindprozesse ermitteln und ausgeben.
+ Die Prozesse sollen eine Gabel bilden.  Mit dem Kommando
+ pstree -p | grep -C2 a.out
+ sollte etwa folgendes beobachtet werden:
+ a.out---a.out
+       |
+       --a.out
+       |
+       --a.out
+       |
+       --a.out
+       |
+       (etc.)
+       --a.out
+       |
+       --a.out
+
+-------------------------------------------------------
+
+Aufgabe 3: "Kette"
+ Elternprozess erzeugt einen Kindprozess, dieser wiederum einen Kindprozess,
+ usw., bis 10 Kindprozesse erzeugt wurden.
+ Ausgaben wie in Aufgabe (2).
+ Die Prozesse sollen eine Kette bilden.  Mit dem Kommando
+ pstree -p | grep -C2 a.out
+ sollte etwa folgendes beobachtet werden:
+ a.out--a.out--a.out--(etc.)--a.out
+
+-------------------------------------------------------
+
+Aufgabe 4: (ENTFAELLT, braucht NICHT bearbeitet zu werden!)
+ fork() und exec*(): der Kindprozess soll /bin/ls mit den Argumenten
+ "-l" "." ausfuehren (Listing des aktuellen directories).
+
+-------------------------------------------------------
+
+Aufgabe 5: (ENTFAELLT, braucht NICHT bearbeitet zu werden!)
+ Programm add.c, das so oft moeglich zwei ganze Zahlen liest
+ (von stdin mit scanf), die beiden Zahlen addiert, das Ergebnis
+ gefolgt von einem blank auf stdout ausgibt und dann 1 Sekunde wartet,
+ bevor es die naechsten zwei ganzen Zahlen liest.
+ Das executable (add) soll wie folgt gestartet werden:
+ %%  ./add <in.dat | ./add | ./add | ./add  &
+ In die Datei in.dat tragen Sie vor dem Start die Zahlen 1 bis 16
+ durch ein blank getrennt ein:
+ %%  seq 1 60 > in.dat
+ Zur Erinnerung: scanf liefert als Funktionsergebnis die Anzahl der
+ erfolgreich eingelesenen Werte und falls das Dateiende erreicht wurde EOF.
+
+-------------------------------------------------------
+-------------------------------------------------------
