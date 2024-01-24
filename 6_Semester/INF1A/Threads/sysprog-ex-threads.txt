@@ -1,0 +1,71 @@
+
+Praktikum "Betriebssysteme": Aufgaben zu POSIX threads
+
+-------------------------------------------------------
+
+- Dies ist die letzte Aufgabe des Praktikums.
+- Es wird Perfektion erwartet!
+
+-------------------------------------------------------
+
+Aufgabe 1: Demonstration der Quasiparallelität.
+ Schreiben Sie eine Funktion, die in einer Schleife, die 5-mal durchlaufen
+ wird, bevor sich die Funktion beendet, mit jeweils einer Verzögerung von 1
+ Sekunde (sleep) die Thread-ID des Threads ausgibt, in dem sie ausgeführt wird.
+ Schreiben Sie damit ein Programm, das diese Funktion 3-mal in
+ jeweils einem Thread quasiparallel zur Ausführung von main bringt, danach
+ auf das Beenden der Threads wartet, bevor es sich selber beendet.
+
+-------------------------------------------------------
+
+Aufgabe 2: Benutzten von Threads via Funktionen.
+ Schreiben Sie ein Programm, das in einer Schleife - so lange es der
+ Bediener möchte - jeweils zwei int-Werte einliest, diese mittels globaler
+ Variablen an eine Funktion add übermittelt, die in einem eigenen Thread
+ quasiparallel zur main-Funktion ausgeführt wird, die beiden Werte addiert
+ und das Ergebnis zusammen mit den beiden Werten mittels globaler Variablen
+ an einen weiteren Thread, der eine Funktion print ausführt, die das
+ Ergebnis in der Form "a+b=c" auf den Bildschirm ausgibt, übergibt.
+ Beendet der Bediener das Programm, so sollten sich alle Threads vor dem
+ Programmende ebenfalls beenden.
+ Der add-Thread und der print-Thread sollen nach erfolgreichem Lesen zweier
+ int-Werte immer neu gestartet werden und erst wenn sie sich beenden, sollen
+ die nÃ¤chsten beiden Werte eingelesen werden.
+
+-------------------------------------------------------
+
+Nun der "ernste" Teil, ab hier brauchen Sie mutexes und conditions.
+-------------------------------------------------------
+
+Aufgabe 3: Persistente threads
+ Lösen Sie die Aufgabe unter (2) mit dem Unterschied zu ihrer Lösung zu (2),
+ dass bei dieser Lösung der add-Thread und der print-Thread nur ein einziges
+ Mal gestartet werden und danach zyklisch Werte addieren bzw. Ergebnisse
+ ausgeben bis sie zum Beenden aufgefordert werden. In diesem Falle sollen
+ sie sich beenden und der Main-Thread soll auf das Beenden warten, bevor er
+ das gesamte Programm kontrolliert beendet.
+
+-------------------------------------------------------
+
+Aufgabe 4: (OPTIONAL)
+ Realisieren Sie in einem Programm die Ausfuehrung von einem Schreiber- und
+ einem Leser-Thread. Der Schreiber-Thread sollte, beginnend mit dem Wert 1,
+ jeweils die nächsten 10 aufeinander folgenden ganzzahligen Zahlenwerte in
+ einen mit dem Leser gemeinsamen Speicherbereich (ein globales int-array mit
+ 10 Elementen) schreiben bis der Wert 100 erreicht ist. Der Leser-Thread
+ sollte jeweils diese 10 Zahlenwerte auslesen und am Bildschirm ausgeben.
+ Für die Ausgabe von 10 Werten sollte immer ein neuer Thread gestartet
+ werden, der die nächsten 10 Werte bereitstellt, bevor er sich beendet. Auch
+ der Leser-Thread sollte jeweils neu gestartet werden, wenn die nächsten 10
+ Zahlenwerte einzulesen sind. Vor dem Beenden des Programms bei Erreichen
+ des Endwertes 100 sollten auch alle Threads beendet werden.
+
+-------------------------------------------------------
+
+Aufgabe 5: (OPTIONAL)
+ Loesen Sie den Aufgabenteil (4) mit einem Schreiber- und einem Leser-
+ Thread, die nun jeweils nur ein einziges Mal gestartet werden und zyklisch
+ jeweils 10 Werte schreiben bzw. lesen bis der Endwert (100) erreicht ist.
+
+-------------------------------------------------------
+-------------------------------------------------------
