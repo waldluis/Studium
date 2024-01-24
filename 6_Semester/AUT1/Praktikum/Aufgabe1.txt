@@ -1,0 +1,80 @@
+FUNCTION_BLOCK "Torsteuerung"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Taster_auf : Bool;
+      Taster_zu : Bool;
+      Automatik : Bool;
+      ES_offen : Bool;
+      Quittierung : Bool;
+      Notaus : Bool;
+      ES_zu : Bool;
+   END_VAR
+
+   VAR_OUTPUT 
+      Tor_auf : Bool;
+      Tor_zu : Bool;
+      Licht : Bool;
+      Notaus_Lampe : Bool;
+      Auto_Anzeige : Bool;
+   END_VAR
+
+   VAR 
+      TorAufTipp : Bool;
+      TorAufAuto : Bool;
+      RS_TorAufAuto : "RS";
+      TorZuTipp : Bool;
+      TorZuAuto : Bool;
+      RS_TorZuAuto : "RS";
+      RS_Notaus : "RS";
+      Stop : Bool;
+      TON1 {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;
+      Zeit : Time := T#250ms;
+      TimerHilf : Bool;
+      TON2 {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;
+      Timerhilf2 : Bool := true;
+      temp1 : Time;
+      temp2 : Time;
+   END_VAR
+
+
+BEGIN
+	#Tor_auf := (#TorAufTipp OR #TorAufAuto) AND NOT #Stop;
+	#Tor_zu := (#TorZuTipp OR #TorZuAuto) AND NOT #Stop;
+	
+	//Tippbetrieb
+	#TorAufTipp := #Taster_auf AND #ES_offen AND NOT #Automatik AND NOT #Taster_zu;
+	#TorZuTipp := #Taster_zu AND #ES_zu AND NOT #Automatik AND NOT #Taster_auf;
+	
+	#TON1(IN:= #Timerhilf2,
+	      PT:=#Zeit,
+	      Q=>#TimerHilf,
+	      ET=>#temp1);
+	
+	#TON2(IN:=NOT #TimerHilf,
+	      PT:=#Zeit,
+	      Q=>#Timerhilf2,
+	      ET=>#temp2);
+	
+	
+	//Lichtsignale
+	#Auto_Anzeige := #Automatik;
+	#Licht :=((#Tor_auf OR #Tor_zu) AND #Timerhilf2);
+	#Notaus_Lampe := #Stop;
+	
+	//Automatikbetrieb
+	#RS_TorZuAuto(S:=#Taster_zu AND #Automatik AND NOT #Taster_auf,
+	              R1:=#ES_zu AND  #Automatik AND NOT #Taster_auf AND NOT #Stop,
+	              Q=>#TorZuAuto);
+	
+	#RS_TorAufAuto(S:=#Taster_auf AND #Automatik AND NOT #Taster_zu,
+	               R1:=#ES_offen AND  #Automatik AND NOT #Taster_zu AND NOT #Stop,
+	               Q=>#TorAufAuto);
+	
+	//Notaus
+	#RS_Notaus(S := NOT #Notaus,
+	           R1 := NOT #Quittierung,
+	           Q => #Stop);
+	
+END_FUNCTION_BLOCK
+
