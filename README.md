@@ -32,7 +32,7 @@ Repository for all coding exercises of my Bachelor and Master study at TH Nuremb
   - C programming for STefi-Board
   - Based on ST NUCLEO-L476RG with custom extension board
   - GPIO, Interrupts, Timer measurement, SPI, CAN
-- Projektarbeit
+- Project
   - Research for custom converter for FORMULA Student car
   - Draft of programm to calculate SVMPWM on Park and Clarke-Transformations
 - Shell-Programming
@@ -40,10 +40,32 @@ Repository for all coding exercises of my Bachelor and Master study at TH Nuremb
   - Folder Compile script to create MAKE in Shell
 
  ### 7_Semester
- - Design of Softwareapplikations (INF3/1)
-   - ...
- - Implementation of Softwareapplikations (INF3/2)
+ - Implementation of Softwareapplications (INF3/2)
    - JAVA applications with Model/View/Controller construction
+   - Usage of Layout Manager, Events, CommandDP, Threads, Network communication
+   - Random Number Generator, Drawing Programm, Inch/Cm-Converter
+  
+### 8_Semester
+- Project Smart Gardening Robot
+  - LEGO-Prototyp of gardening robot to measure essential parameters for plants
+  - Robot controlled by RaspberryPi
+  - Communication to Python-Backend via MQTT
+  - Controll of LEGO EV3 via SSH and Bluetooth from RaspberryPi
   
 ### 9_Semester
-- 
+- Systems engineering (ESY6)
+  - Hardware and Software (ESY6/A)
+    - Cooperation of Hard- and Softwarecomponents
+    - Comparison of FPGA and Microcontroller
+    - FFT, Random signal generation, signal adding
+  - Parallel Computing (ESY6/C)
+    - Low-Level C/C++ programming and optimisation   
+    - Cache-Levels, Pipelines, Hidden Logic, Strong and Weak Scaling
+    - Recursion, Farmer-Worker 
+    - Ternary-Words generator, Julien Set calculation
+  - Embadded Systems 2 (ESY6/D)
+    - C programming for STefi-Board
+    - Based on ST NUCLEO-L476RG with custom extension board
+    - Port Expander, DMA, ADC, System Security, Low Power
+    - Praktikum: ADC, CAN, Port Expander, Shift Register
+- LabView 
