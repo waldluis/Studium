@@ -1,0 +1,5 @@
+Raspy SSH 
+pi
+password: OHM_123.!
+
+ssh pi@<ip>
