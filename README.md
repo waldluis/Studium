@@ -68,4 +68,5 @@ Repository for all coding exercises of my Bachelor and Master study at TH Nuremb
     - Based on ST NUCLEO-L476RG with custom extension board
     - Port Expander, DMA, ADC, System Security, Low Power
     - Praktikum: ADC, CAN, Port Expander, Shift Register
-- LabView 
+- LabView
+  - Queue based statemachine for signal analysing
