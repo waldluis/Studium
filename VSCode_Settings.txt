@@ -1,0 +1,59 @@
+Settings for VSCode local "settings.json":
+
+ToDo Tree settings:
+
+"todo-tree.highlights.defaultHighlight": {
+        "icon": "alert",
+        "type": "text-and-comment",
+        "foreground": "#000000",
+        "background": "#FFFFFF",
+        "opacity": 50,
+        "iconColour": "#0000ff",
+        "gutterIcon": true,
+    },
+    "todo-tree.highlights.customHighlight": {
+        "TODO": {
+            "icon": "check",
+            "foreground": "#ffffff",
+            "background": "#00aeff",
+            "iconColour": "#0000ff",
+        },
+        "NOTE": {
+            "icon": "note",
+            "foreground": "#FFFFFF",
+            "background": "#888888",
+            "iconColour": "#888888",
+        },
+        "COMMENT": {
+            "icon": "note",
+            "foreground": "#FFFFFF",
+            "background": "#888888",
+            "iconColour": "#888888",
+        },
+        "FIXME": {
+            "foreground": "#000000",
+            "background": "#ffff00",
+            "iconColour": "#ffff00",
+        },
+        "BUG": {
+            "foreground": "#000000",
+            "background": "#ff0000",
+            "iconColour": "#ff0000",
+        },
+        "CHECK": {
+            "icon": "eye",
+            "foreground": "#FFFFFF",
+            "background": "#00ff00",
+            "iconColour": "#00ff00",
+        }
+    },
+    "todo-tree.general.tags": [
+        "BUG",
+        "HACK",
+        "FIXME",
+        "TODO",
+        "NOTE",
+        "COMMENT",
+        "CHECK"
+    ],
+    "todo-tree.regex.regex": "(//|#|<!--|;|/\\*|^|^\\s*(-|\\d+.))\\s*($TAGS).*(\\n\\s*//\\s{2,}.*)*",
