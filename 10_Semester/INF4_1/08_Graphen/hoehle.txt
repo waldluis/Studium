@@ -1,0 +1,8 @@
+"Hoehleneingang" <> "Ost/West-Passage"
+"Hoehleneingang" <> "Nord/Sued-Passage"
+"Nord/Sued-Passage" <> "Nebelraum"
+"Steiniger-Pfad" > "Ost/West-Passage"
+"Ost/West-Passage" <> "Schwefelgewoelbe"
+"Schwefelgewoelbe" > "Steiniger-Pfad"
+"Schatzkammer" > "Nebelraum"
+"Steiniger-Pfad" > "Schatzkammer"
