@@ -1,6 +1,7 @@
 # Studium
 
-Repository for all coding exercises of my Bachelor and Master study at TH Nuremberg
+Repository for all coding exercises of my Bachelor and Master study at TH Nuremberg.
+Subjects with no coding aren't mentioned here.
 
 ## Overview
 
@@ -76,7 +77,7 @@ Repository for all coding exercises of my Bachelor and Master study at TH Nuremb
   - General algorithms
   - Sorting, Trees, Graphs
   - Exercise in Python with custom dataclass for ressource usage information
-- Low level and Seminumerical Algorithms
+- Low level and Seminumerical Algorithms (INF4/2)
   - Partitions, Compositions, lexicographical minimun generator
   - Exercise in C++
 - Rust
