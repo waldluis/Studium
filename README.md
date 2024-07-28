@@ -74,10 +74,10 @@ Repository for all coding exercises of my Bachelor and Master study at TH Nuremb
 ### 10_Semester
 - Algorithms and Datastructures (INF4/1)
   - General algorithms
-  - Sorting, Binary Tree
+  - Sorting, Trees, Graphs
   - Exercise in Python with custom dataclass for ressource usage information
-- Low level Algorithms
-  - Partitions, Compositions, lexicographical minimun generator,
+- Low level and Seminumerical Algorithms
+  - Partitions, Compositions, lexicographical minimun generator
   - Exercise in C++
 - Rust
   - Basics of Rust programming language
