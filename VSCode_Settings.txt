@@ -1,5 +1,9 @@
 Settings for VSCode local "settings.json":
 
+Terminal font size change:
+
+    "terminal.integrated.fontSize": 16,
+
 ToDo Tree settings:
 
 "todo-tree.highlights.defaultHighlight": {
